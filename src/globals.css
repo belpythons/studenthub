@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* =====================================================================
+   Design tokens — claymorphism
+   ---------------------------------------------------------------------
+   Two layers live here on purpose:
+
+   1. shadcn/ui semantic tokens (HSL triplets) — drive every component.
+   2. Brand tokens (hex) — consumed by src/pages/print/print.css, whose
+      output was verified pixel-for-pixel against QOL/template kop.pdf
+      and QOL/log book.docx. They are pinned to the light values in both
+      themes so a PDF never changes with the UI theme.
+
+   Brand source: the live reference app at http://10.10.1.187:8097
+     navy #001e41 · blue #0057a8 · red #e3001b · amber #f9a330
+
+   Bahasa visualnya adalah claymorphism: sudut membulat besar, permukaan
+   lembut sewarna latar, dan kedalaman yang dibawa bayangan ganda —
+   bukan garis. Empat token --clay-* di bawah adalah satu-satunya sumber
+   bayangan itu; tailwind.config.ts merakitnya jadi shadow-xs/card/pop/nav.
+   ===================================================================== */
+
+@layer base {
+  :root {
+    /* ---- shadcn semantic tokens · light ---- */
+    /* Putih hangat kebiruan: permukaan liat butuh latar yang sedikit lebih
+       gelap dari kartunya, karena jarak luminansi itulah yang menghidupkan
+       bayangan. Kartu tetap 100%. */
+    --background: 220 30% 95%;
+    --foreground: 222 25% 14%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 25% 14%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 25% 14%;
+
+    /* Biru PT Badak NGL. */
+    --primary: 209 100% 33%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 220 28% 91%;
+    --secondary-foreground: 222 25% 14%;
+
+    --muted: 220 26% 93%;
+    /* 5,9:1 di atas --background. Jangan diturunkan: ini ambang WCAG AA. */
+    --muted-foreground: 220 12% 36%;
+
+    --accent: 220 32% 89%;
+    --accent-foreground: 222 25% 14%;
+
+    --destructive: 356 74% 47%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 152 55% 32%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 47%;
+    --warning-foreground: 222 25% 14%;
+
+    /* Garis nyaris tak terlihat: yang memisahkan permukaan di sini adalah
+       bayangan, bukan border. */
+    --border: 220 22% 87%;
+    --input: 220 22% 87%;
+    /* Fokus keyboard memakai warna kerja, bukan hitam — di atas permukaan
+       liat sebuah outline hitam terbaca seperti retakan. */
+    --ring: 209 100% 33%;
+
+    /*
+      Empat bahan bayangan liat. Dipisah dari --border/--foreground supaya
+      tema gelap bisa membalik sorot jadi putih beralpha rendah tanpa
+      mengubah satu pun kelas shadow-* di aplikasi.
+    */
+    --clay-edge: 220 24% 89%;
+    --clay-shadow: 220 35% 52% / 0.32;
+    --clay-light: 0 0% 100% / 0.9;
+    --clay-dent: 220 28% 66% / 0.2;
+
+    /* Sudut membulat besar — inti bahasa claymorphism. Ketiga kunci
+       borderRadius (sm/md/lg) plus xl diturunkan proporsional dari sini,
+       jadi 79 pemakaian rounded-* ikut menyesuaikan sendiri. */
+    --radius: 1.25rem;
+
+    /* Pengganti next/font/google — keluarga dimuat lewat <link> di index.html. */
+    --font-poppins: "Poppins";
+
+    /* Chrome sidebar: blok gelap padat dengan sedikit rona biru merek. */
+    --sidebar: 222 30% 13%;
+    --sidebar-accent: 209 100% 33%;
+    --sidebar-foreground: 220 30% 96%;
+    --sidebar-muted: 220 12% 68%;
+
+    /* ---- Brand tokens · pinned, print depends on these ---- */
+    --navy: #001e41;
+    /* Kembaran triplet HSL dari --navy: Tailwind hanya bisa menerapkan
+       modifier opasitas (bg-[hsl(var(--x)/0.7)]) pada nilai HSL, tidak pada
+       heks di balik var(). */
+    --navy-hsl: 212 100% 13%;
+    --blue: #0057a8;
+  }
+
+  .dark {
+    --background: 222 24% 11%;
+    --foreground: 220 25% 94%;
+
+    /* Kartu LEBIH TERANG dari latar di tema gelap — arah cahayanya tetap
+       dari atas, jadi permukaan yang menonjol tetap yang lebih terang. */
+    --card: 222 20% 16%;
+    --card-foreground: 220 25% 94%;
+
+    --popover: 222 20% 16%;
+    --popover-foreground: 220 25% 94%;
+
+    /* Dinaikkan agar terbaca di atas latar gelap. */
+    --primary: 207 90% 61%;
+    --primary-foreground: 222 30% 10%;
+
+    --secondary: 222 18% 22%;
+    --secondary-foreground: 220 25% 94%;
+
+    --muted: 222 18% 20%;
+    /* 6,1:1 di atas --card. */
+    --muted-foreground: 220 14% 70%;
+
+    --accent: 222 18% 26%;
+    --accent-foreground: 220 25% 94%;
+
+    --destructive: 356 78% 63%;
+    --destructive-foreground: 222 30% 10%;
+
+    --success: 152 52% 52%;
+    --success-foreground: 222 30% 10%;
+
+    --warning: 38 90% 60%;
+    --warning-foreground: 222 30% 10%;
+
+    --border: 222 16% 26%;
+    --input: 222 16% 26%;
+    --ring: 207 90% 61%;
+
+    /* Sorot dibalik jadi putih beralpha sangat rendah; cekungan dan bayangan
+       jatuh justru dipekatkan — di latar gelap, kedalaman datang dari gelap
+       yang lebih gelap, bukan dari terang yang lebih terang. */
+    --clay-edge: 222 16% 26%;
+    --clay-shadow: 0 0% 0% / 0.6;
+    --clay-light: 0 0% 100% / 0.06;
+    --clay-dent: 0 0% 0% / 0.35;
+
+    --sidebar: 222 28% 8%;
+    --sidebar-accent: 207 90% 61%;
+    --sidebar-foreground: 220 25% 92%;
+    --sidebar-muted: 220 12% 62%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  /*
+    Satu perlakuan fokus untuk seluruh aplikasi.
+
+    Outline padat 3px berwarna --ring, dan browser modern mengikutkan
+    border-radius elemennya sendiri — jadi indikator fokus ikut membulat
+    bersama permukaan liat tanpa aturan tambahan. Fokus keyboard adalah hal
+    terakhir yang boleh dikorbankan demi gaya.
+  */
+  :focus-visible {
+    outline: 3px solid hsl(var(--ring));
+    outline-offset: 2px;
+  }
+
+  /* Native controls follow the theme (date/time pickers, scrollbars). */
+  :root {
+    color-scheme: light;
+  }
+
+  .dark {
+    color-scheme: dark;
+  }
+}
+
+@layer utilities {
+  /* Honour the OS "reduce motion" setting everywhere at once. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Notch / home-indicator padding for the mobile chrome. */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+
+  .h-safe-bottom {
+    height: calc(3.75rem + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* Tabular figures keep KPI digits from shifting while counting up. */
+  .tnum {
+    font-variant-numeric: tabular-nums;
+  }
+
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: hsl(var(--border)) transparent;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: hsl(var(--border));
+    border-radius: 999px;
+  }
+}

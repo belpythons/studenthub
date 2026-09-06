@@ -1,0 +1,38 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    // Windows/macOS are case-insensitive; Linux CI and Vercel are not. Without
+    // this, an import whose casing drifts from the file on disk builds locally
+    // and fails in deploy — exactly the bug this project already hit.
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    // Modul di supabase/functions/_shared saling mengimpor dengan ekstensi .ts
+    // karena Deno mewajibkannya. Aman dengan noEmit: tsc hanya memeriksa tipe.
+    "allowImportingTsExtensions": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "react-jsx",
+    "incremental": true,
+    "types": ["vite/client"],
+    "paths": {
+      "@/*": ["./src/*"],
+      // Modul murni yang dibaca dua bundler: Vite (alias ini) dan Deno (impor
+      // relatif dari dalam supabase/functions). Supabase CLI hanya mengemas
+      // berkas di bawah supabase/functions, jadi di sanalah tempatnya.
+      "@shared/*": ["./supabase/functions/_shared/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx", "vite.config.ts"],
+    // Entry point Edge Function berjalan di Deno (impor jsr:/npm: dan global
+  // Deno), jadi tsc tidak bisa dan tidak perlu memeriksanya — `supabase
+  // functions deploy` yang melakukannya. _shared/ TIDAK dikecualikan: berkas di
+  // sana ikut masuk bundel Vite lewat alias @shared/*.
+  "exclude": ["node_modules", "dist", "supabase/functions/*/index.ts"]
+}

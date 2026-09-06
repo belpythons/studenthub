@@ -1,0 +1,47 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.js
+.yarn/install-state.gz
+
+# testing
+/coverage
+
+# build output — Vite writes both; keduanya sebelumnya tidak terdaftar sama
+# sekali, jadi satu `git add .` sudah cukup untuk mengikutkan 2,7 MB artefak.
+/dist/
+/dev-dist/
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+
+# QA screenshots
+/qa-shots/
+
+# Dokumen sumber di root: acuan tata letak Formulir 2 dan data seed demo.
+# Sengaja tidak dihapus — ketiganya masih dipakai scripts/seed-demo-data.mjs dan
+# saat memverifikasi hasil cetak — tapi memuat nama mahasiswa asli, jadi tidak
+# boleh ikut ter-commit.
+/*.xlsx
+/*.docx
+/*.pdf
+
+# Supabase CLI temp files
+supabase/.temp/

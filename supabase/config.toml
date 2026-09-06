@@ -1,0 +1,10 @@
+project_id = "tvcnibvhskvdssrsmzyw"
+
+[functions.logo-upload]
+# Publik dengan sengaja: akun penggunanya belum ada saat logo dipilih pada
+# formulir pendaftaran. Fungsi ini menegakkan sendiri ukuran, magic byte PNG,
+# dan rate limit per-IP.
+verify_jwt = false
+
+[functions.linkedin-ai]
+verify_jwt = true

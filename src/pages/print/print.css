@@ -1,0 +1,575 @@
+/* =====================================================================
+   Gaya halaman cetak. Dipakai dua dokumen resmi:
+     /print/rekap-magang -> klon QOL/template kop.pdf   (PT Badak NGL)
+     /print/formulir2    -> klon QOL/log book.docx      (STITEK, TI-SOP-17/FM-01)
+
+   Berkas ini dipulihkan dari bundel build setelah sebuah `git checkout` keliru
+   menimpanya dengan versi HEAD yang sudah basi. Aturannya identik dengan yang
+   sudah diverifikasi terhadap kedua dokumen acuan; sebagian komentar penjelas
+   di dalam blok tidak selamat karena minifier membuangnya.
+   ===================================================================== */
+
+.print-root {
+  background: #eef1f6;
+  min-height: 100vh;
+  padding: 0 0 40px;
+}
+
+/* --------------------------- Bilah alat (layar saja) --------------------------- */
+.print-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: 12px 24px;
+  background: #fff;
+  border-bottom: 1px solid hsl(var(--clay-edge));
+  margin-bottom: 24px;
+}
+
+.print-toolbar strong {
+  font-size: 14px;
+  color: var(--navy);
+}
+
+/* ------------------------------- Lembar A4 ------------------------------- */
+.sheet {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  background: #fff;
+  /* Bayangan lembut menggantikan offset padat; @media print membuangnya lagi.
+     Sudut lembarnya tetap siku — ini kertas, bukan permukaan liat. */
+  box-shadow: 0 18px 40px -18px rgb(31 45 79 / 45%);
+}
+
+.sheet-badak {
+  padding: 16mm 15mm;
+  font-size: 10pt;
+  color: #1e293b;
+}
+
+.sheet-stitek {
+  padding: 25mm;
+  font-family: Times New Roman,Times,serif;
+  font-size: 12pt;
+  color: #000;
+  line-height: 1.35;
+}
+
+/* ============ I–VI: rekap PT Badak NGL — klon QOL/template kop.pdf ============ */
+.badak-kop {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-bottom: 10px;
+  border-bottom: 3px solid var(--navy);
+}
+
+.badak-kop img {
+  width: 46px;
+  height: 46px;
+  object-fit: contain;
+}
+
+.badak-kop img.logo-adaptif {
+  width: auto;
+  height: 46px;
+  max-width: 120px;
+}
+
+.stitek-kop-logo img.logo-adaptif {
+  width: auto;
+  height: 17mm;
+  max-width: 30mm;
+}
+
+.badak-kop h1 {
+  margin: 0;
+  font-size: 15pt;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: .01em;
+}
+
+.badak-kop p {
+  margin: 2px 0 0;
+  font-size: 9pt;
+  color: #45566e;
+}
+
+.badak-title {
+  text-align: center;
+  margin: 16px 0 18px;
+}
+
+.badak-title h2 {
+  margin: 0;
+  font-size: 16pt;
+  font-weight: 800;
+  color: var(--navy);
+  letter-spacing: .02em;
+}
+
+.badak-title p {
+  margin: 5px 0 0;
+  font-size: 9.5pt;
+  color: #45566e;
+}
+
+.sect-bar {
+  background: var(--navy);
+  color: #fff;
+  font-size: 10pt;
+  font-weight: 700;
+  letter-spacing: .05em;
+  padding: 7px 14px;
+  margin: 16px 0 10px;
+  page-break-after: avoid;
+  break-after: avoid;
+}
+
+.ident {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10pt;
+}
+
+.ident td {
+  padding: 3.5px 0;
+  vertical-align: top;
+}
+
+.ident td:first-child {
+  width: 42mm;
+  color: #45566e;
+}
+
+.ident td:nth-child(2) {
+  width: 6mm;
+}
+
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.kpi-box {
+  border: 1.5pt solid #111;
+  padding: 10px 14px;
+}
+
+.kpi-box b {
+  display: block;
+  font-size: 17pt;
+  font-weight: 800;
+  color: var(--blue);
+  line-height: 1.1;
+}
+
+.kpi-box span {
+  font-size: 8.5pt;
+  color: #45566e;
+}
+
+.ptbl {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9.5pt;
+}
+
+.ptbl th {
+  background: #eef2f7;
+  color: var(--navy);
+  text-align: left;
+  font-weight: 700;
+  font-size: 8.5pt;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  padding: 7px 9px;
+  border: 1pt solid #111;
+}
+
+.ptbl td {
+  padding: 7px 9px;
+  border: 1pt solid #111;
+  vertical-align: top;
+}
+
+.ptbl .num {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.keg-tbl {
+  font-size: 9pt;
+}
+
+.keg-tbl .c-no {
+  width: 8%;
+  text-align: center;
+}
+
+.keg-tbl .c-tgl {
+  width: 20%;
+}
+
+.keg-tbl .c-kat {
+  width: 26%;
+}
+
+.keg-tbl td p {
+  margin: 0 0 3px;
+  white-space: pre-line;
+}
+
+.keg-tbl td p:last-child {
+  margin-bottom: 0;
+}
+
+.keg-tbl b {
+  color: var(--navy);
+  font-size: 9.5pt;
+}
+
+.keg-tbl .lbl {
+  color: #45566e;
+  font-weight: 600;
+}
+
+.bulan-row td {
+  background: #f4f6f9;
+  font-weight: 700;
+  color: var(--navy);
+  border-left: 3px solid var(--blue);
+}
+
+.keg-foto {
+  margin-top: 8px;
+  max-width: 100%;
+  max-height: 45mm;
+  border: 1pt solid #111;
+}
+
+.keg-komentar {
+  margin-top: 7px;
+  padding-top: 6px;
+  border-top: 1pt dashed #111;
+  font-size: 8.5pt;
+  color: #45566e;
+}
+
+.keg-komentar p {
+  margin: 0 0 3px;
+}
+
+.ttd {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  margin-top: 18px;
+  text-align: center;
+  font-size: 10pt;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.ttd-slot {
+  height: 24mm;
+}
+
+.ttd-line {
+  border-top: 1px solid #1e293b;
+  padding-top: 5px;
+}
+
+.ttd-line b {
+  display: block;
+  color: var(--navy);
+}
+
+.ttd-line span {
+  font-size: 9pt;
+  color: #45566e;
+}
+
+.print-foot {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin-top: 16px;
+  padding-top: 8px;
+  border-top: 1.5pt solid #111;
+  font-size: 8pt;
+  color: #6b7c93;
+}
+
+.empty-note {
+  border: 1.5pt dashed #111;
+  padding: 22px;
+  text-align: center;
+  color: #6b7c93;
+  font-size: 9.5pt;
+}
+
+/* ====== Formulir 2 STITEK (TI-SOP-17/FM-01) — klon QOL/log book.docx ====== */
+.stitek-kop {
+  display: table;
+  width: 100%;
+  border: 1.5pt solid #000;
+  border-collapse: collapse;
+}
+
+.stitek-kop>div {
+  display: table-cell;
+  vertical-align: middle;
+  border: 1pt solid #000;
+  padding: 6px 8px;
+  text-align: center;
+}
+
+.stitek-kop-logo {
+  width: 22mm;
+}
+
+.stitek-kop-logo img {
+  width: 17mm;
+  height: auto;
+}
+
+.stitek-kop-inst strong {
+  display: block;
+  font-size: 12pt;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.stitek-kop-inst span {
+  display: block;
+  font-size: 10.5pt;
+  line-height: 1.3;
+}
+
+.stitek-kop-form {
+  width: 52mm;
+}
+
+.stitek-kop-form strong {
+  display: block;
+  font-size: 10.5pt;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.stitek-kop-form span {
+  font-size: 10.5pt;
+}
+
+.stitek-ident {
+  margin-top: 14px;
+  font-size: 12pt;
+  border-collapse: collapse;
+}
+
+.stitek-ident td {
+  padding: 2px 0;
+  vertical-align: top;
+}
+
+.stitek-ident td:first-child {
+  width: 52mm;
+}
+
+.stitek-ident td:nth-child(2) {
+  width: 6mm;
+}
+
+.stitek-tbl {
+  width: 100%;
+  margin-top: 14px;
+  border-collapse: collapse;
+  font-size: 12pt;
+}
+
+.stitek-tbl th, .stitek-tbl td {
+  border: 1px solid #000;
+  padding: 6px 8px;
+  vertical-align: top;
+}
+
+.stitek-tbl th {
+  text-align: center;
+  font-weight: 700;
+}
+
+.stitek-tbl .c-no {
+  width: 12mm;
+  text-align: center;
+}
+
+.stitek-tbl .c-tgl {
+  width: 38mm;
+}
+
+.stitek-tbl .c-paraf {
+  width: 52mm;
+}
+
+.stitek-tbl td p {
+  margin: 0;
+}
+
+.stitek-tbl td p+p {
+  margin-top: 4px;
+}
+
+.paraf-nama {
+  font-weight: 700;
+}
+
+.paraf-jabatan {
+  font-size: 10pt;
+  font-style: italic;
+}
+
+.paraf-status {
+  font-size: 10pt;
+}
+
+.stitek-ttd {
+  margin-top: 22px;
+  width: 82mm;
+  margin-left: auto;
+  font-size: 12pt;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.stitek-ttd p {
+  margin: 0 0 2px;
+}
+
+.stitek-ttd .slot {
+  height: 30mm;
+  display: flex;
+  align-items: center;
+  color: #666;
+  font-size: 11pt;
+}
+
+.stitek-ttd .nama {
+  border-top: 1px solid #000;
+  padding-top: 3px;
+  font-weight: 700;
+}
+
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
+/* ------------------------------ Aturan cetak ------------------------------ */
+@media print {
+  html, body, .print-root {
+    background: #fff!important;
+    color-scheme: light!important;
+  }
+
+  .print-root {
+    padding: 0!important;
+  }
+
+  .print-toolbar {
+    display: none!important;
+  }
+
+  .sheet {
+    width: auto!important;
+    min-height: 0!important;
+    box-shadow: none!important;
+    margin: 0!important;
+  }
+
+  .sheet-badak {
+    padding: 0!important;
+  }
+
+  .sheet-stitek {
+    padding: 15mm!important;
+  }
+
+  .sect-bar, .badak-kop, .stitek-kop, .ptbl th, .bulan-row td, .kpi-box {
+    -webkit-print-color-adjust: exact!important;
+    print-color-adjust: exact!important;
+  }
+
+  .ptbl thead {
+    display: table-header-group;
+  }
+
+  .ptbl tr, .ttd, .stitek-ttd {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+}
+
+/* =====================================================================
+   Isolasi tema.
+
+   Rute cetak hidup di luar pohon aplikasi tetapi tetap mewarisi kelas .dark
+   dari <html>. Mendeklarasikan ulang seluruh set token terang di sini menjaga
+   setiap kontrol shadcn di bilah alat — dan lembarnya sendiri — tetap terang,
+   sehingga PDF yang tersimpan tidak pernah berubah mengikuti tema UI.
+   ===================================================================== */
+
+.print-root {
+  --background: 220 30% 95%;
+  --foreground: 222 25% 14%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 25% 14%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 25% 14%;
+  --primary: 209 100% 33%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 28% 91%;
+  --secondary-foreground: 222 25% 14%;
+  --muted: 220 26% 93%;
+  --muted-foreground: 220 12% 36%;
+  --accent: 220 32% 89%;
+  --accent-foreground: 222 25% 14%;
+  --border: 220 22% 87%;
+  --input: 220 22% 87%;
+  --ring: 209 100% 33%;
+
+  /*
+    Keempat token liat WAJIB ikut dipin di sini.
+
+    Merekalah yang menyuplai shadow-xs/card/pop lewat tailwind.config, dan tanpa
+    deklarasi ini mereka jatuh ke nilai .dark ketika pengguna memakai tema gelap
+    — bilah alat cetak yang latarnya selalu terang akan mendapat bayangan hitam.
+  */
+  --clay-edge: 220 24% 89%;
+  --clay-shadow: 220 35% 52% / 0.32;
+  --clay-light: 0 0% 100% / 0.9;
+  --clay-dent: 220 28% 66% / 0.2;
+
+  /*
+    Radius mengikuti aplikasi, bukan dinolkan seperti sebelumnya.
+
+    Yang harus tetap bersudut siku adalah lembar A4-nya, dan itu sudah dijamin
+    aturan .sheet sendiri — tidak ada satu pun kelas rounded-* Tailwind di dalam
+    lembar. Menolkannya di sini justru membuat bilah alat di layar jadi
+    satu-satunya bagian aplikasi yang bersudut tajam.
+  */
+  --radius: 1.25rem;
+  color-scheme: light;
+}
+
+
