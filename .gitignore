@@ -45,3 +45,18 @@ yarn-error.log*
 
 # Supabase CLI temp files
 supabase/.temp/
+supabase/.branches/
+
+# Wails desktop shell (docs/wails-reengineering-plan.md) — build artifacts,
+# generated bindings, and installed deps. frontend/src|public|supabase are
+# NTFS junctions into the real dirs above; ignored so git doesn't walk them
+# as a second copy of the same tree.
+/qol-desktop/build/
+/qol-desktop/frontend/node_modules/
+/qol-desktop/frontend/dist/
+/qol-desktop/frontend/wailsjs/
+/qol-desktop/frontend/src
+/qol-desktop/frontend/public
+/qol-desktop/frontend/supabase
+*.md5
+

@@ -6,5 +6,6 @@ project_id = "tvcnibvhskvdssrsmzyw"
 # dan rate limit per-IP.
 verify_jwt = false
 
-[functions.linkedin-ai]
-verify_jwt = true
+# linkedin-ai dihapus (docs/wails-reengineering-plan.md Fase 4) — fitur AI
+# LinkedIn sekarang jalan lokal lewat backend/linkedinai Go + Ollama, bukan
+# Edge Function.

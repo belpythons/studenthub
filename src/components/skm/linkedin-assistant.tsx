@@ -26,7 +26,7 @@ import {
 } from "@/components/ui/select";
 import { EmptyState } from "@/components/shared/empty-state";
 import { createClient } from "@/lib/supabase/client";
-import { generateDraft } from "@/lib/linkedin-client";
+import { aiStatus, generateDraft, type AiStatus, type ReasoningEffort } from "@/lib/linkedin-client";
 import { describeError, notifyError, notifySuccess } from "@/lib/notify";
 import {
   LINKEDIN_SECTIONS,
@@ -245,8 +245,21 @@ export function LinkedInAssistant({
   );
 
   const [bahasa, setBahasa] = React.useState<"id" | "en">("id");
+  const [reasoning, setReasoning] = React.useState<ReasoningEffort>("high");
   const [ai, setAi] = React.useState<AiState>({ phase: "idle" });
   const [history, setHistory] = React.useState<DraftRow[]>([]);
+  const [status, setStatus] = React.useState<AiStatus | null>(null);
+
+  React.useEffect(() => {
+    if (!aiConfigured) return;
+    let cancelled = false;
+    aiStatus().then((s) => {
+      if (!cancelled) setStatus(s);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [aiConfigured]);
 
   // Ganti entri/seksi → hasil AI lama tidak relevan lagi; muat riwayatnya.
   React.useEffect(() => {
@@ -280,6 +293,7 @@ export function LinkedInAssistant({
         seksi: section,
         bahasa,
         force,
+        reasoning,
       });
       setAi({ phase: "success", draft: data.draft, id: data.id, cached: data.cached });
       if (!data.cached && data.id) {
@@ -429,10 +443,17 @@ export function LinkedInAssistant({
                 <CardTitle className="flex items-center gap-2">
                   <Sparkles className="size-4 text-muted-foreground" aria-hidden />
                   Tulis Ulang dengan AI
+                  {status && (
+                    <Badge variant={status.configured ? "default" : "outline"} className="ml-auto">
+                      {status.configured
+                        ? `Ollama Connected (${status.chatModel})`
+                        : "Fallback: Template"}
+                    </Badge>
+                  )}
                 </CardTitle>
                 <CardDescription>
-                  Draft di-ground pada panduan branding LinkedIn terkurasi (RAG). Hasil
-                  tetap bisa diedit sebelum dipakai.
+                  Draft di-ground pada panduan branding LinkedIn terkurasi (RAG), 100% lokal
+                  lewat Ollama. Hasil tetap bisa diedit sebelum dipakai.
                 </CardDescription>
               </CardHeader>
 
@@ -447,6 +468,25 @@ export function LinkedInAssistant({
                       <SelectContent>
                         <SelectItem value="id">Bahasa Indonesia</SelectItem>
                         <SelectItem value="en">English</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="ai-reasoning">Kedalaman berpikir</Label>
+                    <Select
+                      value={reasoning}
+                      onValueChange={(v) => setReasoning(v as ReasoningEffort)}
+                    >
+                      <SelectTrigger id="ai-reasoning" className="w-44">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="low">Rendah (cepat)</SelectItem>
+                        <SelectItem value="medium">Sedang</SelectItem>
+                        <SelectItem value="high">Tinggi (optimal)</SelectItem>
+                        <SelectItem value="xhigh">Sangat tinggi</SelectItem>
+                        <SelectItem value="max">Maksimal (lambat)</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
