@@ -16,6 +16,7 @@ Audit UX/QA beserta seluruh bug yang ditemukan dan diperbaiki:
 | Layer | Teknologi |
 |---|---|
 | Build | Vite 7 · React 18 · TypeScript |
+| Desktop Shell | **Wails v2** (Go + WebView2, native cross-platform) |
 | Routing | React Router 7 (`createBrowserRouter`) |
 | Data | TanStack Query di atas `@supabase/supabase-js` |
 | UI | shadcn/ui (Radix primitives) + Tailwind CSS · Poppins |
@@ -24,79 +25,73 @@ Audit UX/QA beserta seluruh bug yang ditemukan dan diperbaiki:
 | Animasi | Framer Motion — seluruhnya menghormati `prefers-reduced-motion` |
 | Tema | `next-themes` — Terang (bawaan) / Gelap |
 | Notifikasi | Sonner (toast) |
-| Database / Auth / Storage | Supabase (PostgreSQL 15, JWT Auth, Storage Buckets) |
-| Backend | **Tidak ada.** Dua Supabase Edge Function untuk yang butuh rahasia |
+| Database / Auth / Storage | Supabase (PostgreSQL 15 + pgvector 1024-dim, JWT Auth, Storage Buckets) |
+| AI Engine (Lokal & Privat) | **Ollama** (`http://127.0.0.1:11434`) — `llama3.2:3b` / `gpt-oss:20b` & `bge-m3` embedding |
+| Backend & Service Layer | **Go Backend (Wails)** untuk orkestrasi AI lokal + 1 Supabase Edge Function (`logo-upload`) |
 | Ekspor Excel | ExcelJS, dijalankan di peramban |
 | Cetak PDF | HTML + `@media print` A4, ditampilkan dalam modal pratinjau |
 | PWA | `vite-plugin-pwa` (Workbox) |
 
-Tidak ada server milik sendiri. Seluruh data mengalir dari peramban langsung ke
-Supabase lewat RLS; hanya dua hal yang tidak boleh dipercayakan ke klien yang
-berjalan sebagai Edge Function:
-
-| Edge Function | Kenapa harus di server |
-|---|---|
-| `logo-upload` | Butuh service role: akun penggunanya belum ada saat logo dipilih |
-| `linkedin-ai` | `GEMINI_API_KEY` tidak boleh masuk bundel peramban |
-
-### Sistem Token
-
-`src/globals.css` memuat **dua lapis** token, dan pembagian ini penting:
-
-1. **Token semantik shadcn (HSL)** — `--background`, `--primary`,
-   `--muted-foreground`, dan seterusnya. Punya nilai terang dan gelap. Semua
-   komponen membaca dari sini.
-2. **Token brand (hex)** — `--navy #001e41` · `--blue #0057a8` ·
-   `--red #e3001b` · `--amber #f9a330`, diambil dari sistem referensi
-   `http://10.10.1.187:8097`. **Dipatok ke nilai terang di kedua tema**, karena
-   `src/pages/print/print.css` bergantung padanya dan hasil PDF tidak boleh
-   berubah mengikuti tema tampilan.
-
-Kontras teks memenuhi WCAG AA: `--muted-foreground` 5.9:1 pada tema terang,
-6.1:1 pada tema gelap.
+Aplikasi dapat dijalankan sebagai **Web SPA** maupun **Desktop App Native (Wails)**. Seluruh pemrosesan AI berjalan 100% lokal dan offline-first via Ollama tanpa ketergantungan API key cloud.
 
 ---
 
 ## Menjalankan
 
+### Mode 1: Aplikasi Desktop (Wails + Ollama) — Rekomendasi
+Memerlukan [Go](https://golang.org), [Wails CLI](https://wails.io), dan [Ollama](https://ollama.com).
+
+1. **Pastikan model Ollama sudah ditarik:**
+   ```bash
+   ollama pull bge-m3        # embedding 1024 dimensi untuk RAG
+   ollama pull llama3.2:3b   # model formatting/chat (CPU profile)
+   ```
+2. **Jalankan dev environment desktop:**
+   ```bash
+   cd qol-desktop
+   wails dev
+   ```
+3. **Build binary produksi:**
+   ```bash
+   cd qol-desktop
+   wails build
+   # Binary output: qol-desktop/build/bin/qol-desktop.exe (~19.4 MB)
+   ```
+
+### Mode 2: Web SPA (Vite)
 ```bash
 npm install
 npm run dev
 ```
+Aplikasi web berjalan di `http://localhost:3000`.
 
-Aplikasi berjalan di `http://localhost:3000`.
+### Konfigurasi Supabase & Database
 
-### Konfigurasi Supabase
-
-`.env.local` (tidak masuk git) harus berisi:
+`.env.local` (tidak masuk git) berisi:
 
 ```env
-VITE_SUPABASE_URL=https://<project-ref>.supabase.co
+VITE_SUPABASE_URL=http://127.0.0.1:54321
 VITE_SUPABASE_ANON_KEY=<anon key>
 VITE_SITE_URL=http://localhost:3000
-```
 
-> Awalan `VITE_` menggantikan `NEXT_PUBLIC_`, dan artinya sama: apa pun dengan
-> awalan itu ikut masuk ke bundel peramban. Rahasia tidak boleh memakainya.
-
-Variabel berikut **tidak pernah** menyentuh peramban — hanya skrip pemeliharaan di `scripts/` dan Edge Function:
-
-```env
+# Backend & Maintenance Scripts (Lokal)
 SUPABASE_SERVICE_ROLE_KEY=<service_role key>
-SUPABASE_DB_URL=postgresql://postgres.<ref>:<password>@<pooler-host>:5432/postgres
-SUPABASE_ACCESS_TOKEN=<personal access token>   # npm run email:apply
-GEMINI_API_KEY=<gemini key>                     # Edge Function linkedin-ai
+SUPABASE_DB_URL=postgresql://postgres:postgres@127.0.0.1:54322/postgres
+OLLAMA_BASE_URL=http://127.0.0.1:11434
+LLM_CHAT_MODEL=llama3.2:3b
+LLM_EMBED_MODEL=bge-m3
 ```
 
-> Host `db.<ref>.supabase.co` pada halaman *Direct connection* Supabase kini hanya menyediakan alamat IPv6. Bila jaringan Anda IPv4-only, pakai **Session pooler** (`aws-0-<region>.pooler.supabase.com:5432`, user `postgres.<ref>`) — itulah nilai yang tersimpan di `.env.local`.
+### Menyiapkan Database & Knowledge Base
 
-### Menyiapkan Database
-
-Jalankan `supabase/schema.sql` satu kali. Dua cara:
-
-```bash
-node scripts/apply-schema.mjs      # butuh SUPABASE_DB_URL
-```
+1. **Jalankan skema database (idempoten):**
+   ```bash
+   npm run db:schema      # menjalankan supabase/schema.sql
+   ```
+2. **Ingest Knowledge Base RAG ke embedding 1024-dim (`bge-m3`):**
+   ```bash
+   npm run kb:ingest      # menjalankan scripts/ingest-kb-ollama.mjs
+   ```
 
 atau salin isinya ke **SQL Editor** pada dashboard Supabase lalu jalankan.
 
@@ -163,10 +158,11 @@ proyek memakai pengirim email bawaan — lihat
 
 | Skrip | Fungsi |
 |---|---|
-| `node scripts/apply-schema.mjs` | Menjalankan `supabase/schema.sql` ke database |
-| `node scripts/seed-demo-data.mjs` | Reset + seed demo: menghapus akun dummy, lalu mengisi 15 kegiatan magang nyata (3–21 Agustus 2026) + 15 entri log book untuk akun demo `belvapranamasriwibowo@gmail.com`. Idempoten. |
+| `npm run db:schema` (`scripts/apply-schema.mjs`) | Menjalankan `supabase/schema.sql` ke database (PostgreSQL lokal / Supabase) |
+| `npm run kb:ingest` (`scripts/ingest-kb-ollama.mjs`) | Meng-embed korpus `docs/branding-kb/*.md` ke tabel `branding_chunks` dengan vektor 1024-dim (`bge-m3` via Ollama) |
+| `node scripts/seed-demo-data.mjs` | Reset + seed demo: mengisi 15 kegiatan magang nyata + 15 entri log book |
+| `node scripts/seed-test-user.mjs` | Seed user uji cepat untuk smoke test AI lokal |
 | `node scripts/generate-pwa-icons.mjs` | Membangkitkan seluruh ikon PWA dari `public/icon.png` |
-| `node scripts/ingest-branding-kb.mjs` | Meng-embed korpus `docs/branding-kb/*.md` ke tabel `branding_chunks` (butuh `GEMINI_API_KEY`) |
 | `node scripts/_qa.mjs <outDir>` | Harness QA: login sungguhan, tangkapan layar, pemeriksaan perilaku |
 | `node scripts/_pdf.mjs <outDir>` | Mencetak dokumen resmi (formulir2, rekap, briefing) ke PDF pada tema terang dan gelap |
 
@@ -174,13 +170,6 @@ Skrip Supabase memakai `SUPABASE_SERVICE_ROLE_KEY` / `SUPABASE_DB_URL` dan
 **tidak** pernah dijalankan oleh aplikasi. `seed-demo-data.mjs` hanya
 menghapus akun yang tercantum eksplisit pada konstanta `DUMMY_EMAILS`, jadi
 akun sungguhan yang mendaftar belakangan tidak akan pernah tersentuh.
-Sumber datanya adalah sheet *Detail Kegiatan* pada berkas laporan XLSX —
-`foto_url` dibiarkan kosong karena tangkapan layar aslinya tidak ikut di repo.
-
-Dua skrip berawalan `_` butuh server `npm run dev` yang sedang berjalan.
-Lokasi Chrome dicari otomatis lintas-OS (Windows/macOS/Linux) dan dapat
-di-override dengan env `CHROME_PATH`. Kredensial `QA_EMAIL` / `QA_PASSWORD`
-**wajib** diset — tidak ada lagi akun uji bawaan.
 
 ---
 
@@ -195,7 +184,7 @@ di-override dengan env `CHROME_PATH`. Kredensial `QA_EMAIL` / `QA_PASSWORD`
 
 /skm · /skm/new · /skm/[id]/edit       portofolio SKM (persona kampus: ITS/UNAIR/Tel-U/BINUS/Kustom)
 /skm/linkedin                          router penempatan + generator teks LinkedIn & Markdown
-                                       (+ tulis-ulang AI dan chatbot panduan bila GEMINI_API_KEY diset)
+                                       (+ tulis-ulang AI lokal & chatbot panduan via Ollama Wails)
 
 /reports/feed                          daftar kegiatan seluruh peserta
 /reports · /reports/new                laporan sendiri
@@ -215,15 +204,13 @@ di-override dengan env `CHROME_PATH`. Kredensial `QA_EMAIL` / `QA_PASSWORD`
 
 Rutenya didefinisikan di `src/routes.tsx` (React Router `createBrowserRouter`).
 Semua kecuali `/login`, `/register`, `/auth/confirm`, `/faq`, dan `/offline`
-dibungkus `<RequireAuth>` dari `src/lib/session.tsx`, yang mengalihkan pengunjung
-tanpa sesi ke `/login?next=…`. Tidak ada route API: ekspor dikerjakan di peramban
-(`src/lib/export-client.ts`) dan asisten LinkedIn memanggil Edge Function
-`linkedin-ai` langsung.
+dibungkus `<RequireAuth>` dari `src/lib/session.tsx`. Ekspor dikerjakan di peramban
+(`src/lib/export-client.ts`) dan asisten LinkedIn memanggil binding Wails
+(`window.go.main.App.*`) yang mengeksekusi inferensi AI lokal.
 
 ### Asisten LinkedIn: knowledge base, router, validator, chatbot
 
-Sumber rancangan: `RisetBlueprintRAGPersonaLinkedIn.md` (riset mekanisme
-LinkedIn + blueprint sistem RAG). Fase 1–2 blueprint sudah dibangun.
+Sumber rancangan: `RisetBlueprintRAGPersonaLinkedIn.md` dan [docs/wails-reengineering-plan.md](docs/wails-reengineering-plan.md).
 
 **Prinsipnya: pengetahuan platform ada di knowledge base, keputusan ada di rule
 engine, dan model hanya mengekstraksi serta menulis.** Pembagian ini yang
@@ -231,17 +218,19 @@ menekan variansi output dibanding pendekatan "satu prompt besar".
 
 | Bagian | Di mana | Butuh AI? |
 |---|---|---|
-| Knowledge base (8 berkas, 71 chunk) | `docs/branding-kb/*.md` → `branding_chunks` lewat `npm run kb:ingest` | hanya saat ingest |
+| Knowledge base (8 berkas, 71 chunk) | `docs/branding-kb/*.md` → `branding_chunks` lewat `npm run kb:ingest` (`bge-m3`) | hanya saat ingest |
 | Achievement Router — 12 aturan Bab 4.3 | `supabase/functions/_shared/linkedin-router.ts` | **tidak**, jalan di peramban |
 | Validator — 6 pemeriksaan Bab 7.6 | `supabase/functions/_shared/linkedin-validate.ts` | **tidak**, jalan di peramban |
-| Tulis ulang draft (RAG) | `linkedin-ai` Edge Function, `action: "generate"` | ya |
-| Chatbot Mode Panduan (RAG) | `linkedin-ai` Edge Function, `action: "chat"` | ya |
+| Tulis ulang draft (RAG) | Go Backend Wails (`GenerateDraft`) via Ollama (`llama3.2:3b`) | ya |
+| Chatbot Mode Panduan (RAG) | Go Backend Wails (`ChatLinkedIn`) via Ollama (`llama3.2:3b`) | ya |
+| Kontrol Kedalaman Berpikir | UI Selector (5 Level: Rendah, Sedang, Tinggi, Sangat Tinggi, Maksimal) | ya |
+| Fallback Offline / Tanpa AI | Rule-based template generator (`linkedin-format.ts`) | **tidak** |
 
 Router dan validator sengaja deterministik: bisa diuji regresi (golden set 20
-kasus Bab 4.4 di `linkedin-router.test.ts`), konsisten, dan tetap berfungsi
-meski `GEMINI_API_KEY` belum dipasang. Halaman `/skm/linkedin` karena itu tetap
+kasus di `linkedin-router.test.ts`), konsisten, dan tetap berfungsi
+meski Ollama sedang tidak aktif. Halaman `/skm/linkedin` tetap
 berguna tanpa AI sama sekali — badge "sebaiknya masuk section apa" beserta
-alasannya muncul dari kode, bukan dari model.
+alasannya muncul dari kode aturan lokal.
 
 **Menambah pengetahuan:** tulis berkas baru di `docs/branding-kb/` dengan
 heading `## [bahasa|seksi] Judul`, lalu `npm run kb:ingest` (idempoten — baris
