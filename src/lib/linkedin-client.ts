@@ -2,13 +2,40 @@ import supabase from "@/lib/supabase/client";
 import type { ChatMessage, LinkedInAiBahasa, LinkedInAiSection } from "@shared/linkedin-ai";
 
 /*
-  Pembungkus tipis di atas Edge Function `linkedin-ai`.
-
-  GEMINI_API_KEY tidak boleh masuk bundel browser, jadi generator tetap berjalan
-  di sisi server — bedanya sekarang server itu milik Supabase, bukan milik kita.
-  invoke() melampirkan token sesi secara otomatis, sehingga Edge Function bisa
-  memakai auth.uid() persis seperti route Next yang digantikannya.
+  Dulu pembungkus tipis di atas Edge Function `linkedin-ai` (Gemini Cloud).
+  Sekarang memanggil binding Wails (backend/linkedinai di Go), yang jalan
+  100% lokal lewat Ollama — lihat docs/wails-reengineering-plan.md Fase 3-4.
+  window.go.main.App.* disuntikkan runtime Wails, hanya ada di dalam shell
+  desktop (bukan saat halaman ini dibuka sebagai tab browser biasa).
 */
+
+export type ReasoningEffort = "low" | "medium" | "high" | "xhigh" | "max";
+
+declare global {
+  interface Window {
+    go: {
+      main: {
+        App: {
+          AIStatus(): Promise<{ configured: boolean; chatModel: string; reason?: string }>;
+          GenerateDraft(req: {
+            user_id: string;
+            activity_id: string;
+            seksi: string;
+            bahasa: string;
+            force: boolean;
+            reasoning: string;
+          }): Promise<{ draft: string; cached: boolean; id: string; sumber_chunk: string[] }>;
+          ChatLinkedIn(req: {
+            user_id: string;
+            activity_id?: string;
+            messages: ChatMessage[];
+            reasoning: string;
+          }): Promise<{ reply: string; sumber_chunk: string[] }>;
+        };
+      };
+    };
+  }
+}
 
 export interface DraftResult {
   draft: string;
@@ -16,37 +43,50 @@ export interface DraftResult {
   cached: boolean;
 }
 
-async function invoke<T>(body: Record<string, unknown>): Promise<T> {
-  const { data, error } = await supabase.functions.invoke<T>("linkedin-ai", { body });
-  if (error) {
-    // FunctionsHttpError menyembunyikan body respons; pesan asli ada di dalamnya.
-    const detail = await (error as { context?: Response }).context
-      ?.json()
-      .then((j: { error?: string }) => j.error)
-      .catch(() => undefined);
-    throw new Error(detail ?? error.message);
-  }
-  if (!data) throw new Error("Server tidak mengembalikan data.");
-  return data;
+export interface AiStatus {
+  configured: boolean;
+  chatModel?: string;
+  reason?: string;
 }
 
-/** UI menyembunyikan tombol AI bila key tidak dikonfigurasi (dok 02 §3.4). */
-export async function aiConfigured(): Promise<boolean> {
+async function currentUserId(): Promise<string> {
+  const { data } = await supabase.auth.getUser();
+  const id = data.user?.id;
+  if (!id) throw new Error("Sesi berakhir.");
+  return id;
+}
+
+/** Badge status di UI: "Ollama Connected (model)" vs "Fallback: Template". */
+export async function aiStatus(): Promise<AiStatus> {
   try {
-    const { configured } = await invoke<{ configured: boolean }>({ action: "status" });
-    return configured;
+    return await window.go.main.App.AIStatus();
   } catch {
-    return false;
+    return { configured: false, reason: "Shell desktop belum siap." };
   }
 }
 
-export function generateDraft(input: {
+/** UI menyembunyikan tombol AI bila Ollama/model tidak tersedia. */
+export async function aiConfigured(): Promise<boolean> {
+  return (await aiStatus()).configured;
+}
+
+export async function generateDraft(input: {
   activity_id: string;
   seksi: LinkedInAiSection;
   bahasa: LinkedInAiBahasa;
   force: boolean;
+  reasoning?: ReasoningEffort;
 }): Promise<DraftResult> {
-  return invoke<DraftResult>({ action: "generate", ...input });
+  const user_id = await currentUserId();
+  const res = await window.go.main.App.GenerateDraft({
+    user_id,
+    activity_id: input.activity_id,
+    seksi: input.seksi,
+    bahasa: input.bahasa,
+    force: input.force,
+    reasoning: input.reasoning ?? "high",
+  });
+  return { draft: res.draft, id: res.id || null, cached: res.cached };
 }
 
 export interface ChatResult {
@@ -59,9 +99,16 @@ export interface ChatResult {
  * Mode Panduan: tanya jawab mekanik LinkedIn yang di-ground ke knowledge base.
  * `activity_id` opsional — entri SKM yang sedang dibuka ikut jadi konteks.
  */
-export function chatLinkedIn(input: {
+export async function chatLinkedIn(input: {
   messages: ChatMessage[];
   activity_id?: string;
+  reasoning?: ReasoningEffort;
 }): Promise<ChatResult> {
-  return invoke<ChatResult>({ action: "chat", ...input });
+  const user_id = await currentUserId();
+  return window.go.main.App.ChatLinkedIn({
+    user_id,
+    activity_id: input.activity_id,
+    messages: input.messages,
+    reasoning: input.reasoning ?? "high",
+  });
 }

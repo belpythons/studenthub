@@ -15,7 +15,7 @@
     "db:seed": "node scripts/seed-demo-data.mjs",
     "email:apply": "node scripts/apply-email-templates.mjs",
     "fn:deploy": "node scripts/deploy-functions.mjs",
-    "kb:ingest": "node scripts/ingest-branding-kb.mjs",
+    "kb:ingest": "node scripts/ingest-kb-ollama.mjs",
     "icons:generate": "node scripts/generate-pwa-icons.mjs",
     "verify:guards": "node scripts/verify-guards.mjs",
     "qa:shots": "node scripts/shot.mjs qa-shots"
@@ -47,7 +47,6 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@google/genai": "^2.19.0",
     "@types/node": "^20",
     "@types/pg": "^8.23.1",
     "@types/react": "^18",
