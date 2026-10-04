@@ -405,7 +405,7 @@ CREATE TABLE IF NOT EXISTS branding_chunks (
     bahasa     VARCHAR(5) NOT NULL DEFAULT 'id',
     seksi      VARCHAR(40),                  -- experience|certification|award|volunteering|umum
     konten     TEXT NOT NULL,
-    embedding  vector(768) NOT NULL
+    embedding  vector(1024) NOT NULL   -- bge-m3 (Ollama), ganti dari gemini-embedding-001 (768)
 );
 CREATE INDEX IF NOT EXISTS branding_chunks_embedding_idx
     ON branding_chunks USING hnsw (embedding vector_cosine_ops);
@@ -413,7 +413,7 @@ CREATE INDEX IF NOT EXISTS branding_chunks_embedding_idx
 ALTER TABLE branding_chunks ENABLE ROW LEVEL SECURITY;   -- deny-all by design
 
 CREATE OR REPLACE FUNCTION match_branding_chunks(
-    query_embedding vector(768),
+    query_embedding vector(1024),
     match_count INT DEFAULT 4,
     filter_seksi VARCHAR DEFAULT NULL,
     filter_bahasa VARCHAR DEFAULT NULL

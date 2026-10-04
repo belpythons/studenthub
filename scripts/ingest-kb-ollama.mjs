@@ -1,14 +1,14 @@
 /**
- * Ingests docs/branding-kb/*.md into branding_chunks (docs/perbaikan/02 §3.1).
- * Chunk = satu heading `## [bahasa|seksi] Judul`. Idempoten: baris per-file
- * dihapus lalu ditulis ulang. Butuh SUPABASE_DB_URL + GEMINI_API_KEY.
- * Usage: node scripts/ingest-branding-kb.mjs
+ * Ingests docs/branding-kb/*.md into branding_chunks memakai embedding lokal
+ * Ollama (bge-m3, 1024-dim) — padanan scripts/ingest-branding-kb.mjs (Gemini).
+ * Idempoten: baris per-file dihapus lalu ditulis ulang. Butuh SUPABASE_DB_URL
+ * (arahkan ke instance Supabase lokal) + Ollama jalan di 127.0.0.1:11434.
+ * Usage: node scripts/ingest-kb-ollama.mjs
  */
 import { readFileSync, readdirSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import pg from "pg";
-import { GoogleGenAI } from "@google/genai";
 
 const root = join(dirname(fileURLToPath(import.meta.url)), "..");
 const envFile = readFileSync(join(root, ".env.local"), "utf8");
@@ -20,9 +20,9 @@ const env = Object.fromEntries(
 );
 
 const dbUrl = env.SUPABASE_DB_URL ?? process.env.SUPABASE_DB_URL;
-const apiKey = env.GEMINI_API_KEY ?? process.env.GEMINI_API_KEY;
+const ollamaUrl = env.OLLAMA_BASE_URL ?? process.env.OLLAMA_BASE_URL ?? "http://127.0.0.1:11434";
+const embedModel = env.LLM_EMBED_MODEL ?? process.env.LLM_EMBED_MODEL ?? "bge-m3";
 if (!dbUrl) throw new Error("SUPABASE_DB_URL tidak ditemukan di .env.local");
-if (!apiKey) throw new Error("GEMINI_API_KEY tidak ditemukan di .env.local");
 
 const kbDir = join(root, "docs", "branding-kb");
 const HEADING = /^## \[(id|en)\|([a-z]+)\] (.+)$/;
@@ -51,8 +51,18 @@ for (const file of readdirSync(kbDir).filter((f) => f.endsWith(".md"))) {
 for (const c of chunks) c.konten = c.konten.trim();
 console.log(`parsed ${chunks.length} chunks from docs/branding-kb`);
 
-const ai = new GoogleGenAI({ apiKey });
-const client = new pg.Client({ connectionString: dbUrl, ssl: { rejectUnauthorized: false } });
+async function embedBatch(texts) {
+  const res = await fetch(`${ollamaUrl}/api/embed`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ model: embedModel, input: texts }),
+  });
+  if (!res.ok) throw new Error(`Ollama /api/embed ${res.status}: ${await res.text()}`);
+  const data = await res.json();
+  return data.embeddings;
+}
+
+const client = new pg.Client({ connectionString: dbUrl });
 await client.connect();
 
 // Idempoten: file yang di-ingest ulang menggantikan seluruh barisnya.
@@ -64,12 +74,7 @@ const BATCH = 20;
 let written = 0;
 for (let i = 0; i < chunks.length; i += BATCH) {
   const batch = chunks.slice(i, i + BATCH);
-  const res = await ai.models.embedContent({
-    model: "gemini-embedding-001",
-    contents: batch.map((c) => c.konten),
-    config: { taskType: "RETRIEVAL_DOCUMENT", outputDimensionality: 768 },
-  });
-  const embeddings = res.embeddings ?? [];
+  const embeddings = await embedBatch(batch.map((c) => c.konten));
   if (embeddings.length !== batch.length) {
     throw new Error(`embedding count mismatch: ${embeddings.length} != ${batch.length}`);
   }
@@ -78,7 +83,7 @@ for (let i = 0; i < chunks.length; i += BATCH) {
     await client.query(
       `INSERT INTO branding_chunks (sumber, bahasa, seksi, konten, embedding)
        VALUES ($1, $2, $3, $4, $5::vector)`,
-      [c.sumber, c.bahasa, c.seksi, c.konten, `[${embeddings[j].values.join(",")}]`],
+      [c.sumber, c.bahasa, c.seksi, c.konten, `[${embeddings[j].join(",")}]`],
     );
     written++;
   }

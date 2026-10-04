@@ -28,7 +28,9 @@ if (!url) {
 }
 
 const sql = readFileSync(join(root, "supabase/schema.sql"), "utf8");
-const client = new pg.Client({ connectionString: url, ssl: { rejectUnauthorized: false } });
+// Local `supabase start` Postgres doesn't speak SSL; hosted Supabase requires it.
+const isLocal = /127\.0\.0\.1|localhost/.test(url);
+const client = new pg.Client({ connectionString: url, ssl: isLocal ? false : { rejectUnauthorized: false } });
 
 try {
   await client.connect();
