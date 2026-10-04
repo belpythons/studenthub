@@ -34,8 +34,5 @@
   // Deno), jadi tsc tidak bisa dan tidak perlu memeriksanya — `supabase
   // functions deploy` yang melakukannya. _shared/ TIDAK dikecualikan: berkas di
   // sana ikut masuk bundel Vite lewat alias @shared/*.
-  // qol-desktop punya tsconfig sendiri (qol-desktop/frontend/tsconfig.json);
-  // dikecualikan di sini supaya tsc root tidak menembus junction src/supabase
-  // di dalamnya dan memeriksa ulang berkas yang sama lewat dua jalur.
-  "exclude": ["node_modules", "dist", "qol-desktop", "supabase/functions/*/index.ts"]
+  "exclude": ["node_modules", "dist", "supabase/functions/*/index.ts"]
 }
